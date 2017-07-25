@@ -2,7 +2,7 @@
  * Учебная практика
  * Мамонтов А.Ю.
  * Бпи162
- *CLion
+ * CLion
 */
 #include <iostream>
 #include <ctime>
@@ -14,6 +14,8 @@ using namespace std::chrono;
 const int N=9000;
 const int numSort=7;
 const int numLaunch=100;
+const int numArrays=4;
+const int numCompileTests=5;
 
 void generateTests(int *,int *,int *,int *);// Прототип функции генерации тестов
 void radixSort(int *, int);// Прототип цифровой сортировки
@@ -47,52 +49,46 @@ int main()
     // Открытие файла для записи результатов
     ofstream output("../output.csv");
     output<<"numEl;sortName;arrKind;avgTime"<<endl;
-    string sortNames[7]={"bubbleSort","bubbleSort1","bubbleSort2","insertionSort","binInsertionSort","countingSort","radixSort"};
+    string sortNames[numSort]={"bubbleSort","bubbleSort1","bubbleSort2","insertionSort","binInsertionSort","countingSort","radixSort"};
+    string arrNames[numArrays]={"arr07","arr0max","arrNearlySorted","arrReverseSorted"};
+    int *arrays[numArrays]={arr07,arr0max,arrNearlySorted,arrReverseSorted};
 
     // Массив указателей на функции
-    void (*sortFunctions[7])(int *, int)={bubbleSort,bubbleSort1,bubbleSort2,insertionSort,binInsertionSort,countingSort,radixSort};
+    void (*sortFunctions[numSort])(int *, int)={bubbleSort,bubbleSort1,bubbleSort2,insertionSort,binInsertionSort,countingSort,radixSort};
 
     // Цикл проверки
     for(int i=1000;i<=N;i+=1000)
     {
         for(int z=0;z<numSort;++z)
         {
-            long long time07=0,time0max=0,timeNearlySorted=0,timeReverseSorted=0;
-            for(int j=0;j<numLaunch;++j)
+            long long time[numArrays]={0};
+            for(int j=0;j<numArrays;++j)
             {
-                // Подсчет времени
-                int *curArray=arrayCopy(arr07,i);
-                high_resolution_clock::time_point t1 = high_resolution_clock::now();
-                (*sortFunctions[z])(curArray,i);
-                high_resolution_clock::time_point t2 = high_resolution_clock::now();
-                time07+=(duration_cast<nanoseconds>( t2 - t1 ).count());
-
-                curArray=arrayCopy(arr0max,i);
-                t1 = high_resolution_clock::now();
-                (*sortFunctions[z])(curArray,i);
-                t2 = high_resolution_clock::now();
-                time0max+=(duration_cast<nanoseconds>( t2 - t1 ).count());
-
-                curArray=arrayCopy(arrNearlySorted,i);
-                t1 = high_resolution_clock::now();
-                (*sortFunctions[z])(curArray,i);
-                t2 = high_resolution_clock::now();
-                timeNearlySorted+=(duration_cast<nanoseconds>( t2 - t1 ).count());
-
-                curArray=arrayCopy(arrReverseSorted,i);
-                t1 = high_resolution_clock::now();
-                (*sortFunctions[z])(curArray,i);
-                t2 = high_resolution_clock::now();
-                timeReverseSorted+=(duration_cast<nanoseconds>( t2 - t1 ).count());
-                delete [] curArray;
+                // Тестовые прогоны для оптимизирующего компилятора
+                for(int g=0;g<numCompileTests;++g)
+                {
+                    int *testArray=arrayCopy(arrays[j],i);
+                    (*sortFunctions[z])(testArray,i);
+                    delete [] testArray;
+                }
+                for(int k=0;k<numLaunch;++k)
+                {
+                    // Подсчет времени
+                    int *curArray=arrayCopy(arrays[j],i);
+                    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+                    (*sortFunctions[z])(curArray,i);
+                    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+                    time[j]+=(duration_cast<nanoseconds>( t2 - t1 ).count());
+                    delete [] curArray;
+                }
+                // Запись результатов в файл
+                output<<i<<";"<<sortNames[z]<<";"<<arrNames[j]<<";"<<time[j]/numLaunch<<endl;
+                
             }
-            // Запись результатов в файл
-            output<<i<<";"<<sortNames[z]<<";"<<"arr07;"<<time07/numLaunch<<endl;
-            output<<i<<";"<<sortNames[z]<<";"<<"arr0max;"<<time0max/numLaunch<<endl;
-            output<<i<<";"<<sortNames[z]<<";"<<"arrNearlySorted;"<<timeNearlySorted/numLaunch<<endl;
-            output<<i<<";"<<sortNames[z]<<";"<<"arrReverseSorted;"<<timeReverseSorted/numLaunch<<endl;
+            delete [] time;
         }
     }
+    delete [] arrays;
     return 0;
 }
 
